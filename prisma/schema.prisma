@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String             @unique
+  password         String
+  role             Role               @default(INVESTOR)
+  createdAt        DateTime           @default(now())
+  investments      Investment[]
+  profitShares     ProfitDistribution[]
+  withdrawRequests WithdrawRequest[]
+}
+
+model Investment {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String      @db.ObjectId
+  cycleId     String      @db.ObjectId
+  amount      Float
+  status      InvestmentStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id])
+  supplyCycle SupplyCycle @relation(fields: [cycleId], references: [id])
+}
+
+model SupplyCycle {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  startDate        DateTime
+  endDate          DateTime
+  totalInvestment  Float              @default(0)
+  profit           Float?
+  status           CycleStatus        @default(ACTIVE)
+  createdAt        DateTime           @default(now())
+  investments      Investment[]
+  profitShares     ProfitDistribution[]
+}
+
+model ProfitDistribution {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  cycleId      String      @db.ObjectId
+  userId       String      @db.ObjectId
+  investorShare Float
+  adminShare   Float
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id])
+  supplyCycle  SupplyCycle @relation(fields: [cycleId], references: [id])
+}
+
+model WithdrawRequest {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  amount    Float
+  status    WithdrawStatus   @default(PENDING)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  INVESTOR
+}
+
+enum InvestmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CycleStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum WithdrawStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
